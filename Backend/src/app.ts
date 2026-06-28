@@ -6,6 +6,7 @@ import config from './config/config.js';
 import { connectDB } from './db.js';
 import { authMiddleware } from './authMiddleware.js';
 import authRouter from './authRoutes.js';
+import path from "path";
 
 // Connect to MongoDB
 connectDB();
@@ -13,6 +14,8 @@ connectDB();
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(express.static(path.join(process.cwd(), "public")));
 
 app.use(cors({
     origin: config.FRONTEND_URL,
@@ -60,6 +63,10 @@ app.post("/invoke", authMiddleware, async (req, res) => {
             message: error.message || 'An error occurred during agent execution.'
         });
     }
+});
+
+app.get("*name", (_, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "index.html"));
 });
 
 export default app;
