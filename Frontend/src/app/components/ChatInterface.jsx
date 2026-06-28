@@ -1,22 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import Navbar from './Navbar';
 import UserMessage from './UserMessage';
-import ArenaResponse from './ArenaResponse';
-import axios from "axios";
+import ResponseCard from './ResponseCard';
+import ChatInput from './ChatInput';
+import EmptyState from './EmptyState';
+import ErrorMessage from './ErrorMessage';
 
-const MOCK_RESPONSE = {
-  solution_1: "Here is a clean Python solution using modern syntax:\n\n```python\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n```\n\nThis approach has O(n) time complexity and O(1) space.",
-  solution_2: "A recursive solution can be elegant but less efficient:\n\n```python\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)\n```\n\nNote: this has O(2^n) time complexity.",
-  judge: {
-    solution_1_score: 10,
-    solution_2_score: 5,
-    solution_1_reasoning: "Excellent, optimal solution. Space complexity is O(1) which is perfect for this problem.",
-    solution_2_reasoning: "The recursive approach without memoization is extremely slow for large inputs."
-  }
-};
+const API_BASE_URL = 'http://localhost:3000';
 
-export default function ChatInterface() {
-  const [ messages, setMessages ] = useState([]);
-  const [ inputValue, setInputValue ] = useState('');
+export default function ChatInterface({ user, onLogout, onAuthExpired }) {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState('');
+  const [error, setError] = useState(null);
   const endOfMessagesRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -25,83 +23,195 @@ export default function ChatInterface() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [ messages ]);
+  }, [messages, pendingPrompt, error]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
+  const handleSend = async (customPrompt) => {
+    const promptToSend = customPrompt || inputValue;
+    if (!promptToSend.trim() || isLoading) return;
 
-    const response = await axios.post("http://localhost:3000/invoke", {
-      input: inputValue
-    })
-
-    const data = response.data
-
-    console.log(data)
-
-
-    const newMessage = {
-      id: Date.now(),
-      problem: inputValue,
-      // simulate the delay or instantly add dummy response
-      ...data.result
-    };
-
-    setMessages([ ...messages, newMessage ]);
+    setError(null);
+    setPendingPrompt(promptToSend);
     setInputValue('');
+    setIsLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/invoke`,
+        { input: promptToSend },
+        { withCredentials: true }
+      );
+
+      const data = response.data;
+
+      if (data.success) {
+        const newMessage = {
+          id: Date.now(),
+          problem: promptToSend,
+          solution_1: data.result.solution_1,
+          solution_2: data.result.solution_2,
+          judge: data.result.judge,
+          duration: data.duration // In milliseconds
+        };
+        setMessages((prev) => [...prev, newMessage]);
+      } else {
+        throw new Error(data.message || 'Failed to generate solutions');
+      }
+    } catch (err) {
+      console.error('Execution error:', err);
+      
+      if (err.response?.status === 401) {
+        if (onAuthExpired) {
+          onAuthExpired();
+        } else {
+          onLogout();
+        }
+        return;
+      }
+
+      const statusText = err.response?.data?.error || 'Something Went Wrong';
+      const msgText = err.response?.data?.message || err.message || 'An unexpected network error occurred.';
+      
+      setError({
+        title: statusText,
+        message: msgText,
+        retryPrompt: promptToSend
+      });
+    } finally {
+      setPendingPrompt('');
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (!error) return;
+    const promptToRetry = error.retryPrompt;
+    setError(null);
+    handleSend(promptToRetry);
+  };
+
+  const handleSelectPrompt = (promptText) => {
+    handleSend(promptText);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-50 dark:bg-zinc-950 font-sans">
-      <header className="py-4 px-8 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-10 flex justify-center">
-        <h1 className="text-xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50">AI Agent Arena</h1>
-      </header>
+    <div className="flex flex-col min-h-screen bg-zinc-950 font-sans text-zinc-100">
+      {/* Top Navbar */}
+      <Navbar user={user} onLogout={onLogout} />
 
-      <main className="flex-1 overflow-y-auto px-4 md:px-8 py-8 w-full max-w-6xl mx-auto flex flex-col">
-        {messages.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-zinc-400">
-            <div className="text-center">
-              <h2 className="text-2xl font-light mb-2 text-zinc-600 dark:text-zinc-300">Welcome to the Arena</h2>
-              <p>Type a problem below to see two AI solutions go head-to-head.</p>
+      {/* Main Container */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col justify-between" role="main">
+        
+        {/* Chat History / Cards Area */}
+        <div className="flex-1 flex flex-col">
+          {messages.length === 0 && !pendingPrompt ? (
+            <EmptyState onSelectPrompt={handleSelectPrompt} />
+          ) : (
+            <div className="flex-1 space-y-10 mb-8" aria-live="polite" aria-relevant="additions text">
+              
+              {/* Render Completed Messages */}
+              {messages.map((msg) => (
+                <section key={msg.id} className="space-y-6" aria-label="Arena Interaction">
+                  {/* User Question */}
+                  <UserMessage message={msg.problem} />
+
+                  {/* Side-by-side Response Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                    <ResponseCard
+                      agentName="Mistral Medium"
+                      statusColor="bg-emerald-500"
+                      content={msg.solution_1}
+                      generationTime={msg.duration}
+                      isLoading={false}
+                    />
+                    <ResponseCard
+                      agentName="Cohere Command"
+                      statusColor="bg-purple-500"
+                      content={msg.solution_2}
+                      generationTime={msg.duration}
+                      isLoading={false}
+                    />
+                  </div>
+
+                  {/* Judge recommendations */}
+                  {msg.judge && (
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-md">
+                      <h4 className="text-sm font-bold text-zinc-100 tracking-tight flex items-center gap-2 mb-6">
+                        ⚖️ Judge Recommendations
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Solution 1 Score & Reason */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center bg-emerald-950/20 px-4 py-2.5 rounded-xl border border-emerald-900/30">
+                            <span className="text-xs font-semibold text-zinc-400">Mistral Medium Score</span>
+                            <span className="text-lg font-bold text-emerald-400">{msg.judge.solution_1_score}/10</span>
+                          </div>
+                          <p className="text-zinc-400 text-sm leading-relaxed px-1">
+                            {msg.judge.solution_1_reasoning}
+                          </p>
+                        </div>
+                        {/* Solution 2 Score & Reason */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center bg-purple-950/20 px-4 py-2.5 rounded-xl border border-purple-900/30">
+                            <span className="text-xs font-semibold text-zinc-600">Cohere Command Score</span>
+                            <span className="text-lg font-bold text-purple-400">{msg.judge.solution_2_score}/10</span>
+                          </div>
+                          <p className="text-zinc-400 text-sm leading-relaxed px-1">
+                            {msg.judge.solution_2_reasoning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </section>
+              ))}
+
+              {/* Render Pending / Generating Message */}
+              {pendingPrompt && (
+                <div className="space-y-6">
+                  <UserMessage message={pendingPrompt} />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                    <ResponseCard
+                      agentName="Mistral Medium"
+                      statusColor="bg-emerald-500"
+                      isLoading={true}
+                    />
+                    <ResponseCard
+                      agentName="Cohere Command"
+                      statusColor="bg-purple-500"
+                      isLoading={true}
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
-              <UserMessage message={msg.problem} />
-              <ArenaResponse
-                solution1={msg.solution_1}
-                solution2={msg.solution_2}
-                judge={msg.judge}
+          )}
+
+          {/* Render Error Message if any */}
+          {error && (
+            <div className="mb-8">
+              <ErrorMessage
+                title={error.title}
+                message={error.message}
+                onRetry={handleRetry}
               />
             </div>
-          ))
-        )}
-        <div ref={endOfMessagesRef} />
+          )}
+
+          <div ref={endOfMessagesRef} />
+        </div>
+
       </main>
 
-      <div className="p-6 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSend} className="relative flex items-center">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask a coding question..."
-              className="w-full bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-none rounded-full py-4 pl-6 pr-16 focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-zinc-400 transition-shadow shadow-sm hover:shadow-md text-lg"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-full transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!inputValue.trim()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path d="M3.478 2.404a.75.75 0 00-.926.941l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.404z" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
+      {/* Sticky Bottom Chat Input */}
+      <ChatInput
+        value={inputValue}
+        onChange={setInputValue}
+        onSend={() => handleSend()}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
