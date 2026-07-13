@@ -29,8 +29,6 @@ router.get('/google', (req, res) => {
     res.redirect(authUrl);
 });
 
-const isProduction = process.env.NODE_ENV === "production";
-
 // Google OAuth callback endpoint
 router.get('/google/callback', async (req, res) => {
     const { code } = req.query;
@@ -125,12 +123,11 @@ router.get('/google/callback', async (req, res) => {
         const token = jwt.sign(jwtPayload, config.JWT_SECRET, { expiresIn: '7d' });
 
         // Set HttpOnly cookie
-
-        res.cookie("token", token, {
+        res.cookie('token', token, {
             httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "none" : "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
+            secure: false, // Localhost http
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
         // Redirect back to frontend dashboard
@@ -152,10 +149,10 @@ router.get('/me', authMiddleware, (req: AuthRequest, res) => {
 
 // Logout route
 router.post('/logout', (req, res) => {
-        res.clearCookie("token", {
+    res.clearCookie('token', {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "none" : "lax",
+        secure: false,
+        sameSite: 'lax'
     });
     res.status(200).json({
         success: true,
