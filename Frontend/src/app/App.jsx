@@ -4,7 +4,7 @@ import './App.css';
 import ChatInterface from './components/ChatInterface';
 import OAuthPage from './components/OAuthPage';
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [user, setUser] = useState(null);
