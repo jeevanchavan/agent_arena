@@ -6,6 +6,16 @@ import { authMiddleware, type AuthRequest } from './authMiddleware.js';
 
 const router = Router();
 
+const isProduction = process.env.NODE_ENV === 'production';
+const authCookieOptions = {
+    httpOnly: true,
+    // Netlify frontend and Render backend are different sites, so production cookies must be HTTPS-only.
+    secure: isProduction,
+    // Cross-site cookies require SameSite=None; localhost keeps Lax so local HTTP development still works.
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+};
+
 // Google OAuth redirect endpoint
 router.get('/google', (req, res) => {
     const hasGoogleConfig = config.GOOGLE_CLIENT_ID && 
@@ -122,13 +132,8 @@ router.get('/google/callback', async (req, res) => {
 
         const token = jwt.sign(jwtPayload, config.JWT_SECRET, { expiresIn: '7d' });
 
-        // Set HttpOnly cookie
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: false, // Localhost http
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        // Set HttpOnly cookie for the browser session.
+        res.cookie('token', token, authCookieOptions);
 
         // Redirect back to frontend dashboard
         res.redirect(config.FRONTEND_URL);
@@ -151,8 +156,9 @@ router.get('/me', authMiddleware, (req: AuthRequest, res) => {
 router.post('/logout', (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax'
+        // Clear using the same production-aware flags used when setting the cookie.
+        secure: authCookieOptions.secure,
+        sameSite: authCookieOptions.sameSite
     });
     res.status(200).json({
         success: true,

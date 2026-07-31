@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Normalize URLs so deployed env values with trailing slashes do not break CORS origin checks.
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
+
 
 const config = {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
@@ -12,7 +15,8 @@ const config = {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
     GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback',
     JWT_SECRET: process.env.JWT_SECRET || 'super-secret-key-agent-arena-redesign-2026',
-    FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
+    FRONTEND_URL: trimTrailingSlash(process.env.FRONTEND_URL || 'http://localhost:5173'),
+    NODE_ENV: process.env.NODE_ENV || 'production',
 }
 
 
