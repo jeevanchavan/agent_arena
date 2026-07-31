@@ -9,6 +9,8 @@ const router = Router();
 const useSecureCookies = process.env.USE_SECURE_COOKIES === 'true';
 const authCookieOptions = {
     httpOnly: true,
+    // Make the session cookie available to every backend route, including /auth/me and /invoke.
+    path: '/',
     // Netlify frontend and Render backend are different sites, so deployed cookies must be HTTPS-only.
     secure: useSecureCookies,
     // Cross-site cookies require SameSite=None; localhost keeps Lax so local HTTP development still works.
@@ -156,6 +158,7 @@ router.get('/me', authMiddleware, (req: AuthRequest, res) => {
 router.post('/logout', (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
+        path: '/',
         // Clear using the same production-aware flags used when setting the cookie.
         secure: authCookieOptions.secure,
         sameSite: authCookieOptions.sameSite
