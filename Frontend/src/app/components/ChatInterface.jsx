@@ -6,8 +6,7 @@ import ResponseCard from './ResponseCard';
 import ChatInput from './ChatInput';
 import EmptyState from './EmptyState';
 import ErrorMessage from './ErrorMessage';
-
-const API_BASE_URL = 'http://localhost:3000';
+import { API_BASE_URL } from '../config';
 
 export default function ChatInterface({ user, onLogout, onAuthExpired }) {
   const [messages, setMessages] = useState([]);

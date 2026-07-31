@@ -3,8 +3,7 @@ import axios from 'axios';
 import './App.css';
 import ChatInterface from './components/ChatInterface';
 import OAuthPage from './components/OAuthPage';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { API_BASE_URL } from './config';
 
 function App() {
   const [user, setUser] = useState(null);

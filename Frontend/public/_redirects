@@ -1,0 +1,2 @@
+# Keep browser requests same-origin on Netlify while proxying API calls to Render.
+/api/* https://agent-arena-ai.onrender.com/:splat 200

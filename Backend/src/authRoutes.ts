@@ -6,15 +6,14 @@ import { authMiddleware, type AuthRequest } from './authMiddleware.js';
 
 const router = Router();
 
-const useSecureCookies = process.env.USE_SECURE_COOKIES === 'true';
 const authCookieOptions = {
     httpOnly: true,
     // Make the session cookie available to every backend route, including /auth/me and /invoke.
     path: '/',
     // Netlify frontend and Render backend are different sites, so deployed cookies must be HTTPS-only.
-    secure: useSecureCookies,
+    secure: config.USE_SECURE_COOKIES,
     // Cross-site cookies require SameSite=None; localhost keeps Lax so local HTTP development still works.
-    sameSite: useSecureCookies ? 'none' as const : 'lax' as const,
+    sameSite: config.USE_SECURE_COOKIES ? 'none' as const : 'lax' as const,
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
 };
 

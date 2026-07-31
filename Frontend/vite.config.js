@@ -4,4 +4,14 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [ react(), tailwindcss() ],
+  server: {
+    proxy: {
+      // Local dev mirrors Netlify's /api rewrite and keeps frontend code environment-neutral.
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })
