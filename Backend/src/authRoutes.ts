@@ -6,13 +6,13 @@ import { authMiddleware, type AuthRequest } from './authMiddleware.js';
 
 const router = Router();
 
-const isProduction = process.env.NODE_ENV === 'production';
+const useSecureCookies = process.env.USE_SECURE_COOKIES === 'true';
 const authCookieOptions = {
     httpOnly: true,
-    // Netlify frontend and Render backend are different sites, so production cookies must be HTTPS-only.
-    secure: isProduction,
+    // Netlify frontend and Render backend are different sites, so deployed cookies must be HTTPS-only.
+    secure: useSecureCookies,
     // Cross-site cookies require SameSite=None; localhost keeps Lax so local HTTP development still works.
-    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    sameSite: useSecureCookies ? 'none' as const : 'lax' as const,
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
 };
 
