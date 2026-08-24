@@ -31,7 +31,8 @@ export async function connectDB() {
         isConnected = true;
         console.log('Successfully connected to MongoDB.');
     } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
-        console.log('Warning: Running backend without active MongoDB persistence. Operations relying on DB might fail.');
+        console.error('[DATABASE CONNECTOR ERROR] Failed to connect to MongoDB URI:', config.MONGODB_URI);
+        console.error('[DATABASE CONNECTOR DETAILS]:', error);
+        console.warn('[DATABASE CONNECTOR WARNING] Operations requiring database persistence will fail until MongoDB connection is restored.');
     }
 }

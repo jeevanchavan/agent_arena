@@ -6,17 +6,17 @@ import config from "../config/config.js";
 
 
 export const geminiModel = new ChatGoogle({
-    model: "gemini-2.5-flash-lite",
+    model: "gemini-3.6-flash",
     apiKey: config.GEMINI_API_KEY,
-})
+});
 
 export const mistralAIModel = new ChatMistralAI({
     model: "mistral-medium-latest",
     apiKey: config.MISTRAL_API_KEY,
-})
+});
 
 
 export const cohereModel = new ChatCohere({
-    model: "command-a-03-2025",
+    model: "command-r-08-2024",
     apiKey: config.COHERE_API_KEY,
-})
+});
