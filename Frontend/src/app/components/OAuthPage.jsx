@@ -6,9 +6,11 @@ export default function OAuthPage({ onLoginClick }) {
       <main className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-md text-center">
         
         {/* Logo */}
-        <div className="mx-auto w-12 h-12 rounded-xl bg-zinc-100 flex items-center justify-center mb-6" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6 text-zinc-950">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-black border border-zinc-800 flex items-center justify-center mb-6" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" className="w-8 h-8">
+            <path d="M8 24L16 6L24 24H19.5L16 16L12.5 24H8Z" fill="#ffffff"/>
+            <circle cx="11" cy="20" r="1.5" fill="#10b981"/>
+            <circle cx="21" cy="20" r="1.5" fill="#a855f7"/>
           </svg>
         </div>
 
