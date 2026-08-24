@@ -4,8 +4,7 @@
 
 Agent Arena is a full-stack AI comparison platform that lets you submit a single prompt and instantly compare responses from **Mistral** and **Cohere**. Their outputs are then evaluated by **Google Gemini**, which acts as an automated AI judge, providing scores and reasoning.
 
-Live Demo
-🔗 Live Demo: agent-arena-ai.netlify.app
+## Live Demo : agent-arena-ai.netlify.app
 
 ---
 
